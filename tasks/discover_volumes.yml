@@ -1,0 +1,18 @@
+---
+
+- name: Gather EC2 Instance info
+  amazon.aws.ec2_instance_info:
+    instance_ids: "{{ ec2_instance.id | default(none) or omit }}" 
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  register: ec2_instance_info
+
+- name: Create snapshots for block devices
+  include_tasks: ebs_snapshot.yml
+  loop: "{{ ec2_instance_info.instances }}"
+  loop_control:
+    loop_var: instance
+    label: "{{ instance.instance_id }}"

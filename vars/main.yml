@@ -1,2 +1,3 @@
 ---
 # vars file for manage_aws_ec2_snapshot
+ec2_snapshot_all_volumes: false

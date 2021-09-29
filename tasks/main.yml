@@ -1,30 +1,64 @@
 ---
 # tasks file for manage_aws_ec2_snapshot
-- name: Gather EC2 Instance info
-  amazon.aws.ec2_instance_info:
-    instance_ids: "{{ ec2_snapshot_instance_id | default(none) or omit }}" # not required. If you specify one or more instance IDs, only instances that have the specified IDs are returned.
-    # filters: namespace() # not required. A dict of filters to apply. Each dict item consists of a filter key and a filter value. See U(https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html) for possible filters. Filter names and values are case sensitive.
-    # debug_botocore_endpoint_logs: no # not required. Use a botocore.endpoint logger to parse the unique (rather than total) "resource:action" API calls made during a task, outputing the set to the resource_actions key in the task results. Use the aws_resource_action callback to output to total list made during a playbook. The ANSIBLE_DEBUG_BOTOCORE_LOGS environment variable may also be used.
-    # ec2_url:  # not required. Url to use to connect to EC2 or your Eucalyptus cloud (by default the module will use EC2 endpoints). Ignored for modules where region is required. Must be specified for all other modules if region is not used. If not set then the value of the EC2_URL environment variable, if any, is used.
-    # aws_secret_key:  # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
-    # aws_access_key:  # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
-    # security_token:  # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
-    # validate_certs: True # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
-    # profile:  # not required. Uses a boto profile. Only works with boto >= 2.24.0.
-    # region:  # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
-  register: ec2_instance_info
 
-- name: Print instance info
-  debug:
-    var: instance
-  loop: "{{ ec2_instance_info.instances }}"
+- name: Check if inputs are provided for snapshot of selected volumes/devices
+  assert:
+    that: 
+      - (ec2_instance.id is defined) and (ec2_instance.device_name is defined) or 
+        (ec2_instance.volume_id is defined)
+    fail_msg:  The ec2 instance id and device name must be provided OR the snapshot volume id
+    success_msg: Inputs provided.
+    quiet: yes
+  loop: "{{ aws_ec2_instances }}"
   loop_control:
-    loop_var: instance
-    label: "{{ instance.instance_id }}"
+    loop_var: ec2_instance
+    label: "{{ ec2_instance }}"
+  when: not ec2_snapshot_all_volumes| bool
 
-- name: Loop through block devices
-  include_tasks: ebs_snapshot.yml
-  loop: "{{ ec2_instance_info.instances }}"
+- name: Check that inputs are provided for snapshot of all volumes
+  assert:
+    that: ec2_instance.id is defined
+    fail_msg:  The ec2 instance id must be provided 
+    success_msg: Inputs provided.
+    quiet: yes
+  loop: "{{ aws_ec2_instances }}"
   loop_control:
-    loop_var: instance
-    label: "{{ instance.instance_id }}"
+    loop_var: ec2_instance
+    label: "{{ ec2_instance }}"
+  when: ec2_snapshot_all_volumes| bool
+
+- name: Discover EBS volumes when not provided
+  include_tasks: discover_volumes.yml
+  loop: "{{ aws_ec2_instances }}"
+  loop_control:
+    loop_var: ec2_instance
+    label: "{{ ec2_instance }}"
+  when: 
+    - ec2_snapshot_all_volumes | bool
+
+- name: Create EC2 Snapshot using instance id and device_name
+  amazon.aws.ec2_snapshot:
+    volume_id:  "{{ ec2_snapshot_volume_id | default(none) or omit }}" # not required. volume from which to take the snapshot
+    description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
+    instance_id:  "{{ ec2_instance.id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
+    device_name:  "{{ ec2_instance.device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
+    wait: False # not required. wait for the snapshot to be ready
+    wait_timeout: 0 # not required. how long before wait gives up, in seconds specify 0 to wait forever
+    state: "{{ ec2_snapshot_state | default(none) or omit }}" # not required. choices: absent;present. whether to add or create a snapshot
+    snapshot_id: "{{ ec2_instance.volume_id | default(none) or omit }}" # not required. snapshot id to remove
+    last_snapshot_min_age: 0 # not required. If the volume's most recent snapshot has started less than `last_snapshot_min_age' minutes ago, a new snapshot will not be created.
+    debug_botocore_endpoint_logs: no # not required. Use a botocore.endpoint logger to parse the unique (rather than total) "resource:action" API calls made during a task, outputing the set to the resource_actions key in the task results. Use the aws_resource_action callback to output to total list made during a playbook. The ANSIBLE_DEBUG_BOTOCORE_LOGS environment variable may also be used.
+    ec2_url:  # not required. Url to use to connect to EC2 or your Eucalyptus cloud (by default the module will use EC2 endpoints). Ignored for modules where region is required. Must be specified for all other modules if region is not used. If not set then the value of the EC2_URL environment variable, if any, is used.
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    profile:  # not required. Uses a boto profile. Only works with boto >= 2.24.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  loop: "{{ aws_ec2_instances }}"
+  loop_control:
+    loop_var: ec2_instance
+    label: "{{ ec2_instance }}"
+  when: 
+    - not ec2_snapshot_all_volumes | bool
