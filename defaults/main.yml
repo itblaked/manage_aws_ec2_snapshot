@@ -19,6 +19,7 @@ ec2_snapshot_state: present
 # not required. a hash/dictionary of tags to add to the snapshot. Defaults to 'managed_by_aap: true' where aap is Ansible Automation Platform
 ec2_snapshot_tags:
   managed_by_aap: true
+  Name: "{{ inventory_hostname }}"
 # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
 # ec2_snapshot_aws_region:
 # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0. Default is True
