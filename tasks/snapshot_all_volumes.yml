@@ -1,0 +1,74 @@
+---
+
+- name: Assert that block device is EBS
+  assert:
+    that: bdm.ebs is defined
+    success_msg: EBS device exists
+    fail_msg: EBS device does not exist
+    quiet: yes
+  loop: "{{ ec2_instance_info.instances[0].block_device_mappings }}"
+  loop_control:
+    loop_var: bdm
+    label: "{{ bdm.device_name }}"
+
+- name: Print BDM device name and EBS vol id.
+  debug:
+    msg: "Block Device Name is {{ bdm.device_name }} and EBS Volume ID is {{ bdm.ebs.volume_id }}"
+  loop: "{{ ec2_instance_info.instances[0].block_device_mappings }}"
+  loop_control:
+    loop_var: bdm
+    label: "{{ bdm.device_name }}"
+
+- name: Create EC2 Snapshot of discovered devices with discovered instance_id
+  delegate_to: localhost
+  amazon.aws.ec2_snapshot:
+    description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
+    instance_id:  "{{ ec2_instance_info.instances[0].instance_id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
+    device_name:  "{{ bdm.device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
+    wait: False # not required. wait for the snapshot to be ready
+    wait_timeout: 0 # not required. how long before wait gives up, in seconds specify 0 to wait forever
+    state: "{{ ec2_snapshot_state | default(none) or omit }}" # not required. choices: absent;present. whether to add or create a snapshot
+    last_snapshot_min_age: 0 # not required. If the volume's most recent snapshot has started less than `last_snapshot_min_age' minutes ago, a new snapshot will not be created.
+    debug_botocore_endpoint_logs: no # not required. Use a botocore.endpoint logger to parse the unique (rather than total) "resource:action" API calls made during a task, outputing the set to the resource_actions key in the task results. Use the aws_resource_action callback to output to total list made during a playbook. The ANSIBLE_DEBUG_BOTOCORE_LOGS environment variable may also be used.
+    ec2_url:  # not required. Url to use to connect to EC2 or your Eucalyptus cloud (by default the module will use EC2 endpoints). Ignored for modules where region is required. Must be specified for all other modules if region is not used. If not set then the value of the EC2_URL environment variable, if any, is used.
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    profile:  # not required. Uses a boto profile. Only works with boto >= 2.24.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  loop: "{{ ec2_instance_info.instances[0].block_device_mappings }}"
+  loop_control:
+    loop_var: bdm
+    label: "{{ bdm.device_name }}"
+  when: 
+    - ec2_discover_instance_id_with_filter | bool
+    - ec2_snapshot_instance_id is not defined
+
+- name: Create EC2 Snapshot of discovered devices with provided instance_id
+  delegate_to: localhost
+  amazon.aws.ec2_snapshot:
+    description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
+    instance_id:  "{{ ec2_snapshot_instance_id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
+    device_name:  "{{ bdm.device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
+    wait: False # not required. wait for the snapshot to be ready
+    wait_timeout: 0 # not required. how long before wait gives up, in seconds specify 0 to wait forever
+    state: "{{ ec2_snapshot_state | default(none) or omit }}" # not required. choices: absent;present. whether to add or create a snapshot
+    last_snapshot_min_age: 0 # not required. If the volume's most recent snapshot has started less than `last_snapshot_min_age' minutes ago, a new snapshot will not be created.
+    debug_botocore_endpoint_logs: no # not required. Use a botocore.endpoint logger to parse the unique (rather than total) "resource:action" API calls made during a task, outputing the set to the resource_actions key in the task results. Use the aws_resource_action callback to output to total list made during a playbook. The ANSIBLE_DEBUG_BOTOCORE_LOGS environment variable may also be used.
+    ec2_url:  # not required. Url to use to connect to EC2 or your Eucalyptus cloud (by default the module will use EC2 endpoints). Ignored for modules where region is required. Must be specified for all other modules if region is not used. If not set then the value of the EC2_URL environment variable, if any, is used.
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    profile:  # not required. Uses a boto profile. Only works with boto >= 2.24.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  loop: "{{ ec2_instance_info.instances[0].block_device_mappings }}"
+  loop_control:
+    loop_var: bdm
+    label: "{{ bdm.device_name }}"
+  when: 
+    - ec2_snapshot_instance_id is defined
+  run_once: true

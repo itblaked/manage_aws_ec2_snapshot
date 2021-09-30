@@ -1,14 +1,19 @@
 ---
 # defaults file for manage_aws_ec2_snapshot
 
+
 # not required. instance that has the required volume to snapshot mounted. One of either ec2_snapshot_volume_id or  ec2_snapshot_instance_id should be used. If ec2_snapshot_instance_id is used then either device_name or ec2_snapshot_all_volumes: true must be used.
 # ec2_snapshot_instance_id: 
 # not required. description to be applied to the snapshot
 ec2_snapshot_description: Managed by Ansible Automation Platform
+# not required. A dict of filters to apply. Each dict item consists of a filter key and a filter value. See U(https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html) for possible filters. Filter names and values are case sensitive.
+# Default is to search for the inventory_hostname of the target host in the 'Name' tag of EC2.
+ec2_snapshot_instance_filter:
+  "tag:Name": "{{ inventory_hostname }}"
 # not required. volume from which to take the snapshot. One of either volume_id or device_name must be provided.
 # ec2_snapshot_volume_id:
-# Required. device name of a mounted volume to be snapshotted. One of either volume_id or device_name must be provided.
-# ec2_snapshot_device_name:
+# Required. device name of a mounted volume to be snapshotted. One of either volume_id or device_name must be provided. 
+ec2_snapshot_device_name: /dev/sda1
 # Required. choices: absent;present. whether to add or create a snapshot. Default is absent
 ec2_snapshot_state: present
 # not required. a hash/dictionary of tags to add to the snapshot. Defaults to 'managed_by_aap: true' where aap is Ansible Automation Platform
@@ -27,4 +32,7 @@ ec2_snapshot_validate_certs: True
 
 # If set to true, all EBS volumes attached to an EC2 instance will have a snapshot created. If false then the ec2_snapshot_device_name variable must be provided with the ec2_snapshot_instance_id variable 
 # OR alternatively provide the ec2_snapshot_volume_id variable (without the ec2_snapshot_instance_id variable and ec2_snapshot_device_name variable) of the volume which is to have a snapshot created for.
-ec2_snapshot_all_volumes: true
+ec2_snapshot_all_volumes: false
+
+# If set to true, then the instance_id will be discovered using the ec2_snapshot_instance_filter variable.
+ec2_discover_instance_id_with_filter: true

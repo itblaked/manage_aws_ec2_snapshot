@@ -1,0 +1,58 @@
+---
+
+- name: Create EC2 Snapshot using provided instance id and device_name
+  delegate_to: localhost
+  amazon.aws.ec2_snapshot:
+    description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
+    instance_id:  "{{ ec2_snapshot_instance_id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
+    device_name:  "{{ ec2_snapshot_device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
+    wait: False # not required. wait for the snapshot to be ready
+    state: "{{ ec2_snapshot_state | default(none) or omit }}" # not required. choices: absent;present. whether to add or create a snapshot
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  when: 
+    - ec2_snapshot_instance_id is defined
+    - ec2_snapshot_device_name is defined
+    - ec2_snapshot_volume_id is not defined
+  run_once: true
+
+- name: Create EC2 Snapshot using provided volume_id
+  delegate_to: localhost
+  amazon.aws.ec2_snapshot:
+    volume_id:  "{{ ec2_snapshot_volume_id }}" # not required. volume from which to take the snapshot
+    description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
+    snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
+    wait: False # not required. wait for the snapshot to be ready
+    state: "{{ ec2_snapshot_state | default(none) or omit }}" # not required. choices: absent;present. whether to add or create a snapshot
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  when: 
+    - ec2_snapshot_volume_id is defined
+    - ec2_snapshot_instance_id is not defined
+  run_once: true
+
+- name: Create EC2 Snapshot with discovered instance_id and provided device_name
+  delegate_to: localhost
+  amazon.aws.ec2_snapshot:
+    description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
+    instance_id:  "{{ ec2_instance_info.instances[0].instance_id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
+    device_name:  "{{ ec2_snapshot_device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
+    wait: False # not required. wait for the snapshot to be ready
+    state: "{{ ec2_snapshot_state | default(none) or omit }}" # not required. choices: absent;present. whether to add or create a snapshot
+    aws_secret_key:  "{{ ec2_snapshot_secret_key | default(none) or omit }}" # not required. AWS secret key. If not set then the value of the AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, or EC2_SECRET_KEY environment variable is used.
+    aws_access_key:  "{{ ec2_snapshot_access_key | default(none) or omit }}" # not required. AWS access key. If not set then the value of the AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY or EC2_ACCESS_KEY environment variable is used.
+    security_token: "{{ ec2_snapshot_security_token | default(none) or omit }}" # not required. AWS STS security token. If not set then the value of the AWS_SECURITY_TOKEN or EC2_SECURITY_TOKEN environment variable is used.
+    validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
+    region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
+  when:
+    - not ec2_snapshot_all_volumes | bool
+    - ec2_discover_instance_id_with_filter | bool
+    - ec2_snapshot_instance_id is not defined

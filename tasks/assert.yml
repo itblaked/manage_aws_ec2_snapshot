@@ -1,0 +1,34 @@
+---
+- name: Check device name is provided to snapshot specific device
+  assert:
+    that: ec2_snapshot_device_name is defined
+    fail_msg:  The device name must be provided to snapshot a specific disk for a specific instance id
+    success_msg: Inputs provided.
+    quiet: yes
+  run_once: true
+  when: 
+    - not ec2_snapshot_all_volumes| bool
+    - ec2_snapshot_volume_id is not defined
+
+- name: Check volume id is provided to snapshot specific volume
+  assert:
+    that: ec2_snapshot_volume_id is defined
+    fail_msg:  The volume id must be provided to snapshot specific volume if not using device_name with instance_id
+    success_msg: Inputs provided.
+    quiet: yes
+  run_once: true
+  when: 
+    - not ec2_snapshot_all_volumes| bool
+    - ec2_snapshot_device_name is not defined
+
+- name: Check instance id is provided when ec2_discover_instance_id_with_filter is false
+  assert:
+    that: 
+      - (ec2_snapshot_volume_id is defined) or
+        ((ec2_snapshot_instance_id is defined) and (ec2_snapshot_device_name is defined))
+    fail_msg:  The instance id must be provided to snapshot specific device using device_name with instance_id. 
+    success_msg: Inputs provided.
+    quiet: yes
+  run_once: true
+  when: 
+    - ec2_snapshot_volume_id is not defined
