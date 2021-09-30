@@ -17,6 +17,14 @@
   when:
     - ec2_discover_instance_id_with_filter | bool
 
+- name: Assert that instance_id discovery succeeded when enabled
+  assert:
+    that:  ec2_instance_info.instances | length >=1
+    fail_msg:  Unable to discover instance_id for inventory host '{{ inventory_hostname }}''. Results returned are '{{ ec2_instance_info }}'' 
+    success_msg:  Discovered instance_id for inventory host '{{ inventory_hostname }}' 
+    quiet: True 
+  when: ec2_discover_instance_id_with_filter | bool
+
 - name: Start tasks to snapshot all volumes
   include_tasks: snapshot_all_volumes.yml
   when: 
