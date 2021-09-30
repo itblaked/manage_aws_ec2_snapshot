@@ -21,14 +21,13 @@
     - not ec2_snapshot_all_volumes| bool
     - ec2_snapshot_device_name is not defined
 
-- name: Check instance id is provided when ec2_discover_instance_id_with_filter is false
+- name: Check volume_id or instance_id or instance discovery is enabled, but not all.
   assert:
     that: 
       - (ec2_snapshot_volume_id is defined) or
-        ((ec2_snapshot_instance_id is defined) and (ec2_snapshot_device_name is defined))
+        ((ec2_snapshot_instance_id is defined) and (ec2_snapshot_device_name is defined)) or
+        (ec2_discover_instance_id_with_filter | bool)
     fail_msg:  The instance id must be provided to snapshot specific device using device_name with instance_id. 
     success_msg: Inputs provided.
     quiet: yes
   run_once: true
-  when: 
-    - ec2_snapshot_volume_id is not defined
