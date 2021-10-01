@@ -23,8 +23,7 @@
   delegate_to: localhost
   amazon.aws.ec2_snapshot:
     description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
-    instance_id:  "{{ ec2_instance_info.instances[0].instance_id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
-    device_name:  "{{ bdm.device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    volume_id:  "{{ bdm.ebs.volume_id | default(none) or omit }}" 
     snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
     wait: False # not required. wait for the snapshot to be ready
     wait_timeout: 0 # not required. how long before wait gives up, in seconds specify 0 to wait forever
@@ -44,14 +43,12 @@
     label: "{{ bdm.device_name }}"
   when: 
     - ec2_discover_instance_id_with_filter | bool
-    - ec2_snapshot_instance_id is not defined
 
 - name: Create EC2 Snapshot of discovered devices with provided instance_id
   delegate_to: localhost
   amazon.aws.ec2_snapshot:
     description:  "{{ ec2_snapshot_description | default(none) or omit }}" # not required. description to be applied to the snapshot
-    instance_id:  "{{ ec2_snapshot_instance_id | default(none) or omit }}" # not required. instance that has the required volume to snapshot mounted
-    device_name:  "{{ bdm.device_name | default(none) or omit }}" # not required. device name of a mounted volume to be snapshotted
+    volume_id:  "{{ bdm.ebs.volume_id | default(none) or omit }}" 
     snapshot_tags: "{{ ec2_snapshot_tags | default(none) or omit }}"  # not required. a hash/dictionary of tags to add to the snapshot
     wait: False # not required. wait for the snapshot to be ready
     wait_timeout: 0 # not required. how long before wait gives up, in seconds specify 0 to wait forever
@@ -70,5 +67,5 @@
     loop_var: bdm
     label: "{{ bdm.device_name }}"
   when: 
-    - ec2_snapshot_instance_id is defined
+    - not ec2_discover_instance_id_with_filter | bool
   run_once: true

@@ -1,5 +1,5 @@
 ---
-- name: Check device name is provided to snapshot specific device
+- name: No snapshot all | Check device name is provided to snapshot specific device
   assert:
     that: ec2_snapshot_device_name is defined
     fail_msg:  The device name must be provided to snapshot a specific disk for a specific instance id
@@ -10,24 +10,16 @@
     - not ec2_snapshot_all_volumes| bool
     - ec2_snapshot_volume_id is not defined
 
-- name: Check volume id is provided to snapshot specific volume
+- name: No Discovery | Check we have either instance_id and device_name OR volume_id but not all of them.
   assert:
-    that: ec2_snapshot_volume_id is defined
-    fail_msg:  The volume id must be provided to snapshot specific volume if not using device_name with instance_id
+    that: 
+      - ((ec2_snapshot_instance_id is defined and ec2_snapshot_instance_id is string) and (ec2_snapshot_device_name is defined and ec2_snapshot_device_name is string)) or
+        (ec2_snapshot_volume_id is defined and ec2_snapshot_volume_id is string)
+      - not ((ec2_snapshot_instance_id is defined and ec2_snapshot_instance_id is string) and
+        (ec2_snapshot_volume_id is defined and ec2_snapshot_volume_id is string))
+    fail_msg:  The instance_id and device_name or just the volume_id must be provided to snapshot a specific volume.
     success_msg: Inputs provided.
     quiet: yes
   run_once: true
   when: 
-    - not ec2_snapshot_all_volumes| bool
-    - ec2_snapshot_device_name is not defined
-
-- name: Check volume_id or instance_id or instance discovery is enabled, but not all.
-  assert:
-    that: 
-      - (ec2_snapshot_volume_id is defined) or
-        ((ec2_snapshot_instance_id is defined) and (ec2_snapshot_device_name is defined)) or
-        (ec2_discover_instance_id_with_filter | bool)
-    fail_msg:  The instance id must be provided to snapshot specific device using device_name with instance_id. 
-    success_msg: Inputs provided.
-    quiet: yes
-  run_once: true
+    - not ec2_discover_instance_id_with_filter | bool

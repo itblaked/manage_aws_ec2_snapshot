@@ -15,9 +15,9 @@
     validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
     region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
   when: 
+    - not ec2_discover_instance_id_with_filter | bool
     - ec2_snapshot_instance_id is defined
-    - ec2_snapshot_device_name is defined
-    - ec2_snapshot_volume_id is not defined
+    - ec2_snapshot_instance_id is string
   run_once: true
 
 - name: Create EC2 Snapshot using provided volume_id
@@ -34,8 +34,9 @@
     validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
     region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
   when: 
+    - not ec2_discover_instance_id_with_filter | bool
     - ec2_snapshot_volume_id is defined
-    - ec2_snapshot_instance_id is not defined
+    - ec2_snapshot_volume_id is string
   run_once: true
 
 - name: Create EC2 Snapshot with discovered instance_id and provided device_name
@@ -53,6 +54,4 @@
     validate_certs: "{{ ec2_snapshot_validate_certs | default(none) or omit }}"  # not required. When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
     region:  "{{ ec2_snapshot_aws_region | default(none) or omit }}" # not required. The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used. See U(http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region)
   when:
-    - not ec2_snapshot_all_volumes | bool
     - ec2_discover_instance_id_with_filter | bool
-    - ec2_snapshot_instance_id is not defined
