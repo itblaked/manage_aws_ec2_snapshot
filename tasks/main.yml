@@ -17,6 +17,7 @@
   when:
     - ec2_discover_instance_id_with_filter | bool or 
       ec2_snapshot_all_volumes | bool
+  ignore_errors: yes
 
 - name: Assert that instance_id discovery succeeded when enabled
   assert:
